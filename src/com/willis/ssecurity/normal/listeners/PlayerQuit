@@ -1,0 +1,27 @@
+package com.willis.ssecurity.normal.listeners;
+
+import com.willis.ssecurity.SSecurity;
+import com.willis.ssecurity.normal.util.Util;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
+
+public class PlayerQuit implements Listener {
+
+    private SSecurity plugin;
+    private Util util;
+
+    public PlayerQuit(SSecurity plugin) {
+        this.plugin = plugin;
+        this.util = new Util(plugin);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+
+        Player player = event.getPlayer();
+
+        util.quitCheck(player);
+    }
+}
