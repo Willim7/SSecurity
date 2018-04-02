@@ -1,0 +1,270 @@
+package com.willis.ssecurity.normal.util;
+
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.willis.ssecurity.SSecurity;
+import com.willis.ssecurity.utilities.Config;
+import com.willis.ssecurity.utilities.EMail;
+import com.willis.ssecurity.utilities.SText;
+import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+
+import java.util.*;
+
+public class Util {
+
+    private SSecurity plugin;
+    private EMail eMail;
+
+    public Util(SSecurity plugin) {
+        this.plugin = plugin;
+        this.eMail = new EMail(plugin);
+    }
+
+    //Colour
+    public String colour(String i) { return ChatColor.translateAlternateColorCodes('&', i); }
+
+    //Getter
+    public String getGKey(UUID uuid) { return plugin.getUsers().getConfig().getString("Players." + uuid + ".GAuth"); }
+    private String getIPAddress(UUID uuid) { return plugin.getUsers().getConfig().getString("Players." + uuid + ".IP"); }
+    private String getPlayerEmail(UUID uuid) {return plugin.getUsers().getConfig().getString("Players." + uuid + ".Email"); }
+
+    //Booleans
+    private boolean email() { return plugin.getConfig().getBoolean("EmailAuthentication"); }
+    private boolean google() { return plugin.getConfig().getBoolean("GoogleAuthentication"); }
+
+    private boolean alwaysCheck() { return plugin.getConfig().getBoolean("AlwaysCheck"); }
+    private boolean ipCheck() { return plugin.getConfig().getBoolean("IPCheck"); }
+
+    private boolean isAuth(UUID uuid) {
+        if (plugin.getUsers().getConfig().contains("Players." + uuid)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isEAuth(UUID uuid) { return plugin.getUsers().getConfig().getBoolean("Players." + uuid + ".EmailAuthentication"); }
+    private boolean isGAuth(UUID uuid) { return plugin.getUsers().getConfig().getBoolean("Players." + uuid + ".GoogleAuthentication");}
+
+    //Methods
+    public void authenticate(Player player) {
+
+        UUID uuid = player.getUniqueId();
+
+        String currentIP = player.getAddress().getAddress().toString();
+
+        if (player.hasPermission("SSecurity.access") || (player.hasPermission("SSecurity.access.plus"))) {
+            if (email() && (google())) {
+
+                if (isAuth(uuid)) {
+
+                    if (alwaysCheck()) {
+
+                        if (isEAuth(uuid)) {
+
+                            eAuthenticate(player);
+
+                        } else if (isGAuth(uuid)) {
+
+                            gAuthenticate(player);
+                        }
+
+                    } else if (ipCheck()) {
+
+                        if (!currentIP.equals(getIPAddress(uuid))) {
+
+                            if (isEAuth(uuid)) {
+
+                                eAuthenticate(player);
+
+                            } else if (isGAuth(uuid)) {
+
+                                gAuthenticate(player);
+                            }
+                        }
+                    }
+                } else {
+                    cAuthenticate(player);
+                }
+            } else if (email() && (!google())) {
+                if (isAuth(uuid)) {
+                    if (alwaysCheck()) {
+
+                        eAuthenticate(player);
+
+                    } else if (ipCheck()) {
+                        if (!currentIP.equals(getIPAddress(uuid))) {
+                            eAuthenticate(player);
+                        }
+                    }
+                } else {
+                    eSetup(player);
+                }
+            } else if (!email() && (google())) {
+                if (isAuth(uuid)) {
+                    if (alwaysCheck()) {
+                        gAuthenticate(player);
+                    } else if (ipCheck()) {
+                        if (!currentIP.equals(getIPAddress(uuid))) {
+                            gAuthenticate(player);
+                        }
+                    }
+                } else {
+                    gSetup(player);
+                }
+            }
+        }
+    }
+
+    public void unAuthenticate(Player player) {
+        if (isAuth(player.getUniqueId())) {
+            plugin.getUsers().getConfig().set("Players." + player.getUniqueId(), null);
+            plugin.getUsers().saveConfig();
+        }
+    }
+
+    public void unAuthenticate(OfflinePlayer player) {
+        if (isAuth(player.getUniqueId())) {
+            plugin.getUsers().getConfig().set("Players." + player.getUniqueId(), null);
+            plugin.getUsers().saveConfig();
+        }
+    }
+
+    private void cAuthenticate(Player player) {
+
+        String emailText = plugin.getConfig().getString("EmailText");
+        String emailTextHover = plugin.getConfig().getString("EmailTextHover");
+
+        String googleText = plugin.getConfig().getString("GoogleText");
+        String googleTextHover = plugin.getConfig().getString("GoogleTextHover");
+
+        String overallMessage = colour(plugin.getConfig().getString("OverallMessage").
+                replace("%email%", "{cmd=/SSecurity set email}{hover=" + emailTextHover + "}" + emailText + "{/}").
+                replace("%google%", "{cmd=/SSecurity set google}{hover=" + googleTextHover + "}" + googleText + "{/}"));
+
+        SText text = new SText(overallMessage);
+        text.send(player);
+    }
+
+    private void eAuthenticate(Player player) {
+        if (isEAuth(player.getUniqueId())) {
+
+            String code = generateCode();
+
+            plugin.geteLogin().put(player.getUniqueId(), code);
+
+            String emailSubject = plugin.getConfig().getString("EmailSubject");
+            String emailMessage = plugin.getConfig().getString("EmailMessage").replace("%code%", code);
+
+            String inputEmailCode = plugin.getConfig().getString("InputEmailCode");
+
+            String playerEmail = plugin.getUsers().getConfig().getString("Players." + player.getUniqueId() + ".Email");
+
+            eMail.sendEmail(playerEmail, emailSubject, emailMessage);
+
+            player.sendMessage(colour(inputEmailCode));
+
+
+        } else {
+
+            plugin.geteInput().add(player.getUniqueId());
+
+            String inputEmail = plugin.getConfig().getString("InputEmail");
+
+            player.sendMessage(colour(inputEmail));
+        }
+    }
+
+    private void gAuthenticate(Player player) {
+        if (isGAuth(player.getUniqueId())) {
+
+            plugin.getgLogin().add(player.getUniqueId());
+
+            String inputGoogleCode = plugin.getConfig().getString("InputGoogleCode");
+
+            player.sendMessage(colour(inputGoogleCode));
+
+        } else {
+
+            GoogleAuthenticator googleAuthenticator = plugin.getGoogleAuthenticator().get(0);
+            GoogleAuthenticatorKey googleAuthenticatorKey = googleAuthenticator.createCredentials();
+
+            String key = googleAuthenticatorKey.getKey();
+            String giveGoogleCode = plugin.getConfig().getString("GiveGoogleCode").replace("%code%", key);
+
+            setTypeGoogle(player, key);
+
+            player.sendMessage(colour(giveGoogleCode));
+        }
+    }
+
+    private void eSetup(Player player) {
+
+        plugin.geteInput().add(player.getUniqueId());
+
+        String inputEmail = plugin.getConfig().getString("InputEmail");
+
+        player.sendMessage(colour(inputEmail));
+    }
+
+    private void gSetup(Player player) {
+
+        GoogleAuthenticator googleAuthenticator = plugin.getGoogleAuthenticator().get(0);
+        GoogleAuthenticatorKey googleAuthenticatorKey = googleAuthenticator.createCredentials();
+
+        String key = googleAuthenticatorKey.getKey();
+        String giveGoogleCode = plugin.getConfig().getString("GiveGoogleCode").replace("%code%", key);
+
+        setTypeGoogle(player, key);
+
+        player.sendMessage(colour(giveGoogleCode));
+
+    }
+
+    public void quitCheck(Player player) {
+        if (plugin.geteInput().contains(player.getUniqueId()) || (plugin.geteLogin().containsKey(player.getUniqueId()) || (plugin.getgLogin().contains(player.getUniqueId())))) {
+            plugin.geteInput().remove(player.getUniqueId());
+            plugin.geteLogin().remove(player.getUniqueId());
+            plugin.getgLogin().remove(player.getUniqueId());
+        }
+        if (isAuth(player.getUniqueId())) {
+            if (isEAuth(player.getUniqueId())) {
+                if (getPlayerEmail(player.getUniqueId()).equals("")) {
+                    unAuthenticate(player);
+                }
+            }
+        }
+    }
+
+    public void setTypeGoogle(Player player, String googleKey) {
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".GAuth", googleKey);
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".Email", "");
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".IP", player.getAddress().getAddress().toString());
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".EmailAuthentication", false);
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".GoogleAuthentication", true);
+        plugin.getUsers().saveConfig();
+    }
+
+    public void setTypeEmail(Player player, String email) {
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".GAuth", "");
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".Email", email);
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".IP", player.getAddress().getAddress().toString());
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".EmailAuthentication", true);
+        plugin.getUsers().getConfig().set("Players." + player.getUniqueId() + ".GoogleAuthentication", false);
+        plugin.getUsers().saveConfig();
+    }
+
+
+    private String generateCode(){
+
+        StringBuilder builder = new StringBuilder();
+        String s = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        for(int i = 0; i<6; i++){
+            double index = Math.random() * s.length();
+            builder.append(s.charAt((int)index));
+        }
+        return builder.toString();
+    }
+}
