@@ -1,0 +1,11 @@
+name: SSecurity
+main: com.willis.ssecurity.SSecurity
+version: 1.2.1
+
+author: Willim
+softdepend: [SuperMaps]
+
+commands:
+  ssecurity:
+    description: The main command for the plugin! (/SS for short usgae)
+    aliases: [ss]
