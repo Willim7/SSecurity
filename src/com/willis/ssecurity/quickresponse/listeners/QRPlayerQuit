@@ -1,0 +1,27 @@
+package com.willis.ssecurity.quickresponse.listeners;
+
+import com.willis.ssecurity.SSecurity;
+import com.willis.ssecurity.quickresponse.util.QRUtil;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
+
+public class QRPlayerQuit implements Listener {
+
+    private SSecurity plugin;
+    private QRUtil qrUtil;
+
+    public QRPlayerQuit(SSecurity plugin) {
+        this.plugin = plugin;
+        this.qrUtil = new QRUtil(plugin);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+
+        Player player = event.getPlayer();
+
+        qrUtil.quitCheck(player);
+    }
+}
