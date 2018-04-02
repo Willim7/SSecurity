@@ -4,7 +4,6 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.willis.ssecurity.normal.util.Util;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,19 +21,15 @@ public class Command implements CommandExecutor {
         this.plugin = plugin;
         this.util = new Util(plugin);
     }
-
-    private String colour(String i) {
-        return ChatColor.translateAlternateColorCodes('&', i);
-    }
-
+    
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
 
         if (sender.hasPermission("SSecurity.access") || (sender.hasPermission("SSecurity.access.plus"))) {
 
             if (args.length == 0) {
-                sender.sendMessage(colour("&e/SSecurity set (email | google)"));
-                sender.sendMessage(colour("&e/SSecurity remove (player)"));
+                sender.sendMessage(util.colour("&e/SSecurity set (email | google)"));
+                sender.sendMessage(util.colour("&e/SSecurity remove (player)"));
                 return false;
             }
 
@@ -54,7 +49,7 @@ public class Command implements CommandExecutor {
 
                                 String emailDisabled = plugin.getConfig().getString("EmailDisabled");
 
-                                player.sendMessage(colour(emailDisabled));
+                                player.sendMessage(util.colour(emailDisabled));
                                 return false;
                             }
 
@@ -62,7 +57,7 @@ public class Command implements CommandExecutor {
 
                             String inputEmail = plugin.getConfig().getString("InputEmail");
 
-                            player.sendMessage(colour(inputEmail));
+                            player.sendMessage(util.colour(inputEmail));
 
                         } else if (type.equalsIgnoreCase("google")) {
 
@@ -70,7 +65,7 @@ public class Command implements CommandExecutor {
 
                                 String googleDisabled = plugin.getConfig().getString("GoogleDisabled");
 
-                                player.sendMessage(colour(googleDisabled));
+                                player.sendMessage(util.colour(googleDisabled));
                                 return false;
                             }
 
@@ -83,7 +78,7 @@ public class Command implements CommandExecutor {
 
                             String giveGoogleCode = plugin.getConfig().getString("GiveGoogleCode").replace("%code%", key);
 
-                            player.sendMessage(colour(giveGoogleCode));
+                            player.sendMessage(util.colour(giveGoogleCode));
                         }
                     } else if (args[0].equalsIgnoreCase("remove")) {
 
@@ -100,7 +95,7 @@ public class Command implements CommandExecutor {
 
                                     String unAuthenticate = plugin.getConfig().getString("UnAuthenticate").replace("%player%", online.getName());
 
-                                    player.sendMessage(colour(unAuthenticate));
+                                    player.sendMessage(util.colour(unAuthenticate));
 
                                 } else {
 
@@ -108,11 +103,11 @@ public class Command implements CommandExecutor {
 
                                     String unAuthenticate = plugin.getConfig().getString("UnAuthenticate").replace("%player%", offlinePlayer.getName());
 
-                                    player.sendMessage(colour(unAuthenticate));
+                                    player.sendMessage(util.colour(unAuthenticate));
                                 }
                             }
                         } else {
-                            player.sendMessage(colour("&cYou may not issue this command."));
+                            player.sendMessage(util.colour("&cYou may not issue this command."));
                         }
                     }
                 }
@@ -120,7 +115,7 @@ public class Command implements CommandExecutor {
                 sender.sendMessage("Only a player can issue this command.");
             }
         } else {
-            sender.sendMessage(colour("&cYou may not issue this command."));
+            sender.sendMessage(util.colour("&cYou may not issue this command."));
         }
         return false;
     }
