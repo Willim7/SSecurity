@@ -1,0 +1,26 @@
+package com.willis.ssecurity.quickresponse.listeners;
+
+import com.willis.ssecurity.SSecurity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+
+public class QRPlayerCommand implements Listener {
+
+    private SSecurity plugin;
+
+    public QRPlayerCommand(SSecurity plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+
+        Player player = event.getPlayer();
+
+        if (plugin.geteInput().contains(player.getUniqueId()) || (plugin.getgLogin().contains(player.getUniqueId()) || (plugin.geteLogin().containsKey(player.getUniqueId())))) {
+            event.setCancelled(true);
+        }
+    }
+}
