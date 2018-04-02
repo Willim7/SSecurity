@@ -1,0 +1,143 @@
+package com.willis.ssecurity.quickresponse.command;
+
+import com.ssplugins.supermaps.SuperMaps;
+import com.ssplugins.supermaps.interfaces.MapFactory;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.willis.ssecurity.SSecurity;
+import com.willis.ssecurity.quickresponse.util.QRUtil;
+import com.willis.ssecurity.utilities.QRMap;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.UUID;
+
+public class QRCommand implements CommandExecutor {
+
+    private SSecurity plugin;
+    private QRUtil qrUtil;
+
+    public QRCommand(SSecurity plugin) {
+        this.plugin = plugin;
+        this.qrUtil = new QRUtil(plugin);
+    }
+
+    private String colour(String i) {
+        return ChatColor.translateAlternateColorCodes('&', i);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+
+        if (sender.hasPermission("SSecurity.access") || (sender.hasPermission("SSecurity.access.plus"))) {
+
+            if (args.length == 0) {
+                sender.sendMessage(colour("&e/SSecurity set (email | google)"));
+                sender.sendMessage(colour("&e/SSecurity remove (player)"));
+                return false;
+            }
+
+            if (sender instanceof Player) {
+
+                Player player = (Player) sender;
+                UUID uuid = player.getUniqueId();
+
+                if (args.length == 2) {
+                    if (args[0].equalsIgnoreCase("set")) {
+
+                        String type = args[1];
+
+                        if (type.equalsIgnoreCase("email")) {
+
+                            if (!plugin.getConfig().getBoolean("EmailAuthentication")) {
+
+                                String emailDisabled = plugin.getConfig().getString("EmailDisabled");
+
+                                player.sendMessage(colour(emailDisabled));
+                                return false;
+                            }
+
+                            plugin.geteInput().add(uuid);
+
+                            String inputEmail = plugin.getConfig().getString("InputEmail");
+
+                            player.sendMessage(colour(inputEmail));
+
+                        } else if (type.equalsIgnoreCase("google")) {
+
+                            if (!plugin.getConfig().getBoolean("GoogleAuthentication")) {
+
+                                String googleDisabled = plugin.getConfig().getString("GoogleDisabled");
+
+                                player.sendMessage(colour(googleDisabled));
+                                return false;
+                            }
+
+                            GoogleAuthenticator googleAuthenticator = plugin.getGoogleAuthenticator().get(0);
+                            GoogleAuthenticatorKey googleAuthenticatorKey = googleAuthenticator.createCredentials();
+
+                            String key = googleAuthenticatorKey.getKey();
+                            String mapName = uuid.toString();
+                            String serverName = plugin.getConfig().getString("ServerName").replace(" ", "_");
+
+                            QRMap map = QRMap.fromGoogleKey(mapName, key, serverName, player.getName());
+
+                            MapFactory factory = SuperMaps.getMapFactory();
+                            factory.addMap(map);
+
+                            ItemStack item = map.getItem();
+
+                            player.getInventory().addItem(item);
+
+                            qrUtil.setTypeGoogle(player, key);
+
+                            String giveGoogleCode = plugin.getConfig().getString("GiveGoogleCode").replace("%code%", key);
+
+                            player.sendMessage(colour(giveGoogleCode));
+                        }
+                    } else if (args[0].equalsIgnoreCase("remove")) {
+
+                        if (player.hasPermission("SSecurity.access.plus")) {
+
+                            OfflinePlayer offlinePlayer = Bukkit.getServer().getOfflinePlayer(args[1]);
+
+                            if (offlinePlayer.hasPlayedBefore()) {
+                                if (offlinePlayer.isOnline()) {
+
+                                    Player online = Bukkit.getServer().getPlayer(args[1]);
+
+                                    qrUtil.unAuthenticate(online);
+
+                                    String unAuthenticate = plugin.getConfig().getString("UnAuthenticate").replace("%player%", online.getName());
+
+                                    player.sendMessage(colour(unAuthenticate));
+
+                                } else {
+
+                                    qrUtil.unAuthenticate(offlinePlayer);
+
+                                    String unAuthenticate = plugin.getConfig().getString("UnAuthenticate").replace("%player%", offlinePlayer.getName());
+
+                                    player.sendMessage(colour(unAuthenticate));
+                                }
+                            }
+                        } else {
+                            player.sendMessage(colour("&cYou may not issue this command."));
+                        }
+                    }
+                }
+            } else {
+                sender.sendMessage("Only a player can issue this command.");
+            }
+        } else {
+            sender.sendMessage(colour("&cYou may not issue this command."));
+        }
+        return false;
+    }
+}
