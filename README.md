@@ -24,9 +24,10 @@ The difference between these permissions is within the commands!
 NOTE: You may use /ss as a shortened version
 
 [Requires SSecurity.access]
+
 Allows the player to choose between email and google authentication
 - /SSecurity set (email | google) 
 
-[Requires SSecurity.access.plus]
+[Requires SSecurity.access.plus]                             
 Allows the player to remove another player the player from the yml file
 - /SSecurity remove (player) 
