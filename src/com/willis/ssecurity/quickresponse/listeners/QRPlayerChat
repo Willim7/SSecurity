@@ -1,0 +1,67 @@
+package com.willis.ssecurity.quickresponse.listeners;
+
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.willis.ssecurity.SSecurity;
+import com.willis.ssecurity.quickresponse.util.QRUtil;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+
+public class QRPlayerChat implements Listener {
+
+    private SSecurity plugin;
+    private QRUtil qrUtil;
+
+    public QRPlayerChat(SSecurity plugin) {
+        this.plugin = plugin;
+        this.qrUtil = new QRUtil(plugin);
+    }
+
+    @EventHandler
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+
+        Player player = event.getPlayer();
+
+        String message = event.getMessage();
+
+        String emailInputted = plugin.getConfig().getString("EmailInputted");
+        String emailLoginSuccess = plugin.getConfig().getString("EmailLoginSuccess");
+        String emailLoginFail = plugin.getConfig().getString("EmailLoginFail");
+        String googleLoginSuccess = plugin.getConfig().getString("GoogleLoginSuccess");
+        String googleLoginFail = plugin.getConfig().getString("GoogleLoginFail");
+
+        if (plugin.geteInput().contains(player.getUniqueId())) {
+            event.setCancelled(true);
+            if (message.contains("@")) {
+                plugin.geteInput().remove(player.getUniqueId());
+                qrUtil.setTypeEmail(player, message);
+                player.sendMessage(qrUtil.colour(emailInputted));
+            } else {
+                player.sendMessage(qrUtil.colour("&cYour email must contain the @ symbol."));
+            }
+        } else if (plugin.geteLogin().containsKey(player.getUniqueId())) {
+            event.setCancelled(true);
+            if (message.equals(plugin.geteLogin().get(player.getUniqueId()))) {
+                plugin.geteLogin().remove(player.getUniqueId());
+                player.sendMessage(qrUtil.colour(emailLoginSuccess));
+            } else {
+                player.sendMessage(qrUtil.colour(emailLoginFail));
+            }
+        } else if (plugin.getgLogin().contains(player.getUniqueId())) {
+            event.setCancelled(true);
+            GoogleAuthenticator googleAuthenticator = plugin.getGoogleAuthenticator().get(0);
+            try {
+                Integer code = Integer.parseInt(message);
+                if (googleAuthenticator.authorize(qrUtil.getGKey(player.getUniqueId()), code)) {
+                    plugin.getgLogin().remove(player.getUniqueId());
+                    player.sendMessage(qrUtil.colour(googleLoginSuccess));
+                } else {
+                    player.sendMessage(qrUtil.colour(googleLoginFail));
+                }
+            } catch (NumberFormatException e) {
+                player.sendMessage(qrUtil.colour("&cThe code may only contain numbers."));
+            }
+        }
+    }
+}
